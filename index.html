@@ -1,0 +1,373 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Danh sách kênh</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Be+Vietnam+Pro:wght@400;500;700&display=swap">
+<style>
+  :root {
+    --bg: #10233a;
+    --surface: #17324f;
+    --surface-hover: #1f4269;
+    --line: #2b4d75;
+    --text: #eef4fa;
+    --muted: #9fb6cf;
+    --accent: #ffd166;
+    --live: #ff4d4d;
+    --radius: 10px;
+  }
+
+  * { box-sizing: border-box; }
+
+  html, body { margin: 0; }
+
+  body {
+    background: var(--bg);
+    color: var(--text);
+    font-family: "Be Vietnam Pro", system-ui, -apple-system, "Segoe UI", Roboto, sans-serif;
+    line-height: 1.5;
+    min-height: 100vh;
+  }
+
+  .wrap {
+    max-width: 960px;
+    margin: 0 auto;
+    padding: 40px 20px 64px;
+  }
+
+  header {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: end;
+    justify-content: space-between;
+    gap: 16px;
+    margin-bottom: 28px;
+  }
+
+  h1 {
+    margin: 0;
+    font-size: clamp(1.6rem, 4vw, 2.2rem);
+    font-weight: 700;
+    letter-spacing: -0.01em;
+  }
+
+  header p {
+    margin: 4px 0 0;
+    color: var(--muted);
+    font-size: 0.95rem;
+  }
+
+  .search {
+    width: min(100%, 280px);
+    padding: 10px 14px;
+    border: 1px solid var(--line);
+    border-radius: var(--radius);
+    background: var(--surface);
+    color: var(--text);
+    font: inherit;
+  }
+  .search::placeholder { color: var(--muted); }
+  .search:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
+
+  /* Danh sách kênh: mỗi nút giống một phím bấm trên điều khiển TV */
+  .channels {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(230px, 1fr));
+    gap: 12px;
+    list-style: none;
+    margin: 0;
+    padding: 0;
+  }
+
+  .channel-btn {
+    display: flex;
+    align-items: center;
+    gap: 14px;
+    width: 100%;
+    padding: 14px 16px;
+    border: 1px solid var(--line);
+    border-radius: var(--radius);
+    background: var(--surface);
+    color: var(--text);
+    font: inherit;
+    font-weight: 500;
+    text-align: left;
+    cursor: pointer;
+    transition: background 0.15s, border-color 0.15s;
+  }
+  .channel-btn:hover { background: var(--surface-hover); border-color: var(--accent); }
+  .channel-btn:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
+
+  .channel-no {
+    flex: none;
+    min-width: 2.4em;
+    padding: 4px 8px;
+    border-radius: 6px;
+    background: var(--bg);
+    color: var(--accent);
+    font-weight: 700;
+    font-variant-numeric: tabular-nums;
+    text-align: center;
+  }
+
+  .channel-label { display: flex; flex-direction: column; min-width: 0; }
+  .channel-label small { color: var(--muted); font-weight: 400; font-size: 0.8rem; }
+
+  .empty {
+    grid-column: 1 / -1;
+    padding: 32px 0;
+    color: var(--muted);
+    text-align: center;
+  }
+
+  /* Cửa sổ phát */
+  dialog {
+    width: min(920px, 94vw);
+    padding: 0;
+    border: 1px solid var(--line);
+    border-radius: 14px;
+    background: #081522;
+    color: var(--text);
+    overflow: hidden;
+  }
+  dialog::backdrop { background: rgba(4, 10, 18, 0.8); }
+
+  .player-bar {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 12px;
+    padding: 12px 16px;
+    background: var(--surface);
+  }
+
+  .player-title {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    margin: 0;
+    font-size: 1rem;
+    font-weight: 700;
+  }
+
+  .live-dot {
+    width: 10px;
+    height: 10px;
+    border-radius: 50%;
+    background: var(--live);
+    flex: none;
+  }
+
+  .close-btn {
+    padding: 6px 14px;
+    border: 1px solid var(--line);
+    border-radius: 8px;
+    background: transparent;
+    color: var(--text);
+    font: inherit;
+    cursor: pointer;
+  }
+  .close-btn:hover { background: var(--surface-hover); }
+  .close-btn:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
+
+  .video-box { position: relative; background: #000; }
+
+  video {
+    display: block;
+    width: 100%;
+    max-height: 75vh;
+    aspect-ratio: 16 / 9;
+    background: #000;
+  }
+
+  .status {
+    position: absolute;
+    inset: auto 12px 12px 12px;
+    padding: 10px 14px;
+    border-radius: 8px;
+    background: rgba(8, 21, 34, 0.92);
+    font-size: 0.9rem;
+  }
+  .status[hidden] { display: none; }
+  .status.error { border: 1px solid var(--live); }
+
+  @media (prefers-reduced-motion: reduce) {
+    .channel-btn { transition: none; }
+  }
+</style>
+</head>
+<body>
+
+<main class="wrap">
+  <header>
+    <div>
+      <h1>Danh sách kênh</h1>
+      <p>Bấm vào tên kênh để xem.</p>
+    </div>
+    <input class="search" id="search" type="search" placeholder="Tìm kênh hoặc quốc gia" aria-label="Tìm kênh">
+  </header>
+
+  <ul class="channels" id="channels"></ul>
+</main>
+
+<dialog id="player-dialog" aria-labelledby="player-title">
+  <div class="player-bar">
+    <h2 class="player-title" id="player-title"><span class="live-dot"></span><span id="player-name"></span></h2>
+    <button class="close-btn" id="close-btn" type="button">Đóng</button>
+  </div>
+  <div class="video-box">
+    <video id="video" controls playsinline></video>
+    <div class="status" id="status" hidden></div>
+  </div>
+</dialog>
+
+<script src="https://cdnjs.cloudflare.com/ajax/libs/hls.js/1.5.13/hls.min.js"></script>
+<script>
+  /* ============================================================
+     DANH SÁCH KÊNH - thay bằng link m3u8 của bạn ở đây.
+     Mỗi kênh gồm: name (tên hiển thị), country (nhóm/quốc gia) và url (link .m3u8)
+     ============================================================ */
+  const CHANNELS = [
+    { name: "VTV1", country: "VN", url: "https://live-a.fptplay53.net/live/media/vtv1/live247-hls-avc/index.m3u8" },
+    { name: "VTV2", country: "VN", url: "https://live-a.fptplay53.net/live/media/vtv2/live247-hls-avc/index.m3u8" },
+    { name: "VTV3 ", country: "VN", url: "https://live-a.fptplay53.net/live/media/vtv3/live247-hls-avc/index.m3u8" },
+    { name: "VTV4", country: "VN", url: "https://live-a.fptplay53.net/live/media/vtv4/live247-hls-avc/index.m3u8" },
+    { name: "VTV5", country: "VN", url: "https://live-a.fptplay53.net/live/media/vtv5/live247-hls-avc/index.m3u8" },
+    { name: "VTV TÂY NGUYÊN", country: "VN", url: "https://vips-livecdn.fptplay.net/live/media/vtv5tn/live-hls-avc/index.m3u8" },
+    { name: "VTV NAM BỘ", country: "VN", url: "https://live-a.fptplay53.net/live/media/vtv5tnb/live-hls-avc/index.m3u8" },
+    { name: "VTV6", country: "VN", url: "https://live-a.fptplay53.net/live/media/vtv6/live247-hls-avc/index.m3u8" },
+    { name: "VTV7", country: "VN", url: "https://live-a.fptplay53.net/live/media/vtv7/live247-hls-avc/index.m3u8" },
+    { name: "VTV8", country: "VN", url: "hhttps://live-a.fptplay53.net/live/media/vtv8/live247-hls-avc/index.m3u8" },
+    { name: "VTV9", country: "VN", url: "https://live-a.fptplay53.net/live/media/vtv9/live247-hls-avc/index.m3u8" },
+    { name: "VTV10", country: "VN", url: "https://live-a.fptplay53.net/live/media/vtv10/live247-hls-avc/index.m3u8" },
+  ];
+
+  const listEl   = document.getElementById("channels");
+  const searchEl = document.getElementById("search");
+  const dialog   = document.getElementById("player-dialog");
+  const nameEl   = document.getElementById("player-name");
+  const video    = document.getElementById("video");
+  const statusEl = document.getElementById("status");
+  const closeBtn = document.getElementById("close-btn");
+
+  let hls = null;
+
+  function renderList(filter = "") {
+    const q = filter.trim().toLowerCase();
+    listEl.innerHTML = "";
+    let count = 0;
+
+    CHANNELS.forEach((ch, i) => {
+      if (q && !(ch.name + " " + (ch.country || "")).toLowerCase().includes(q)) return;
+      count++;
+
+      const li  = document.createElement("li");
+      const btn = document.createElement("button");
+      btn.type = "button";
+      btn.className = "channel-btn";
+
+      const no = document.createElement("span");
+      no.className = "channel-no";
+      no.textContent = i + 1;
+
+      const label = document.createElement("span");
+      label.className = "channel-label";
+      label.textContent = ch.name;
+
+      const country = document.createElement("small");
+      country.textContent = ch.country || "";
+      label.appendChild(country);
+
+      btn.append(no, label);
+      btn.addEventListener("click", () => openChannel(ch));
+      li.appendChild(btn);
+      listEl.appendChild(li);
+    });
+
+    if (!count) {
+      const li = document.createElement("li");
+      li.className = "empty";
+      li.textContent = "Không tìm thấy kênh nào.";
+      listEl.appendChild(li);
+    }
+  }
+
+  function showStatus(message, isError = false) {
+    statusEl.textContent = message;
+    statusEl.classList.toggle("error", isError);
+    statusEl.hidden = false;
+  }
+
+  function hideStatus() {
+    statusEl.hidden = true;
+  }
+
+  function stopPlayback() {
+    if (hls) {
+      hls.destroy();
+      hls = null;
+    }
+    video.pause();
+    video.removeAttribute("src");
+    video.load();
+    hideStatus();
+  }
+
+  function openChannel(ch) {
+    nameEl.textContent = ch.name;
+    dialog.showModal();
+    showStatus("Đang tải kênh...");
+
+    if (window.Hls && Hls.isSupported()) {
+      hls = new Hls();
+      hls.loadSource(ch.url);
+      hls.attachMedia(video);
+
+      hls.on(Hls.Events.MANIFEST_PARSED, () => {
+        hideStatus();
+        video.play().catch(() => {});
+      });
+
+      hls.on(Hls.Events.ERROR, (event, data) => {
+        if (!data.fatal) return;
+        if (data.type === Hls.ErrorTypes.NETWORK_ERROR) {
+          showStatus("Không tải được kênh. Link có thể hỏng hoặc bị chặn (CORS).", true);
+        } else if (data.type === Hls.ErrorTypes.MEDIA_ERROR) {
+          hls.recoverMediaError();
+        } else {
+          showStatus("Không phát được kênh này.", true);
+        }
+      });
+    } else if (video.canPlayType("application/vnd.apple.mpegurl")) {
+      // Safari và iOS phát m3u8 trực tiếp
+      video.src = ch.url;
+      video.addEventListener("loadedmetadata", () => {
+        hideStatus();
+        video.play().catch(() => {});
+      }, { once: true });
+      video.addEventListener("error", () => {
+        showStatus("Không phát được kênh này.", true);
+      }, { once: true });
+    } else {
+      showStatus("Trình duyệt của bạn không hỗ trợ phát m3u8.", true);
+    }
+  }
+
+  closeBtn.addEventListener("click", () => dialog.close());
+
+  // Bấm ra ngoài vùng phát cũng đóng cửa sổ
+  dialog.addEventListener("click", (e) => {
+    if (e.target === dialog) dialog.close();
+  });
+
+  // Đóng bằng nút, phím Esc hay bấm ra ngoài đều dừng phát
+  dialog.addEventListener("close", stopPlayback);
+
+  searchEl.addEventListener("input", () => renderList(searchEl.value));
+
+  renderList();
+</script>
+</body>
+</html>
